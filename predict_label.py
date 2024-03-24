@@ -2,14 +2,29 @@
 Ahnaf Tajwar
 Class: CS 677
 Date: 3/23/23
-Homework Problem # 1
-Description of Problem (just a 1-2 line summary!): This problem is to create pandas dataframe from the stock return csv and add the "true label" to each day.
-    It also asks to compute the probability of seeing the next true label after a certain history of labels.
+Homework Problem # 2
+Description of Problem (just a 1-2 line summary!):
 """
 
 import pandas as pd
 
 tickers = ['SPY.csv']
+
+def check_sequence(train_data, w, seq):
+        neg_string_count = 0
+        pos_string_count = 0
+        # Iterating over each row in the filtered DataFrame with a sliding window of length k+1
+        for i in range(len(train_data) - 1):
+            # Get the slice of the dataframe corresponding to the sliding window of length k+1
+            window = train_data.iloc[i:i+w+1]
+            
+            # Check if the first k elements in the window are consecutive 'down days'
+            if window.iloc[:w+1]['True Label'].tolist() == seq + ['-']: # check for expected string (pass in as input?)
+                neg_string_count += 1
+            elif window.iloc[:w+1]['True Label'].tolist() == seq + ['+']:
+                pos_string_count += 1
+        
+        return neg_string_count, pos_string_count
 
 for ticker in tickers:
 
@@ -39,6 +54,13 @@ for ticker in tickers:
     train_up_prob = train_up_days / train_total_days
 
     print(f"Probability of getting a '+' day for the first three years for {ticker}:", train_up_prob)
+    
+    # Get the last two years
+    last_two_years = df['Year'].max() - 1  # Assuming years are consecutive
+
+    # Filter DataFrame for the last two years
+    df_test_years = df[df['Year'].isin([last_two_years, last_two_years + 1])]
+    print(df_test_years)
 
     # 
 
@@ -93,3 +115,39 @@ for ticker in tickers:
     
     for k, down_probability in down_probabilities.items():
         print(f"Probability of observing an 'down day' after seeing {k} consecutive 'up days' for {ticker}: {down_probability:.4f}")
+
+    print("-----------------------------------------------------------------------------------------------------------------------------")
+
+    values_of_w = [2,3,4]
+
+    for w in values_of_w:
+        # Initializing variables to count sequences
+        neg_string_count = 0
+        pos_string_count = 0
+        next_result = ''
+        new_column = f'W{w}'
+
+        if new_column not in df_test_years:
+            df_test_years[new_column] = ''  # Create the column if it doesn't exists
+
+        for i in range(w-1,len(df_test_years) - 1):
+            # Get the slice of the dataframe corresponding to the sliding window of length k+1
+            window = df_test_years.iloc[i-w+1:i+1]
+            seq = window['True Label'].tolist()
+            neg_string_count, pos_string_count = check_sequence(df_train_years, w, seq)
+
+            if neg_string_count > pos_string_count:
+                next_result = '-'
+            elif neg_string_count < pos_string_count:
+                next_result = '+'
+            else:
+                if train_up_prob > 0.5:
+                    next_result = '+'
+                else:
+                    next_result = '-'
+            df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] = next_result
+        
+            print(neg_string_count)
+            print(pos_string_count)
+        
+        print(df_test_years)
