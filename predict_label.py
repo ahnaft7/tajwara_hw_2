@@ -8,7 +8,7 @@ Description of Problem (just a 1-2 line summary!):
 
 import pandas as pd
 
-tickers = ['SPY.csv']
+tickers = ['SPY.csv', 'TSLA.csv']
 
 def check_sequence(train_data, w, seq):
         neg_string_count = 0
@@ -28,6 +28,8 @@ def check_sequence(train_data, w, seq):
 
 for ticker in tickers:
 
+    print(f"\n*****Start ticker: {ticker}*****\n")
+
     # Read csv as pandas dataframe
     df = pd.read_csv(ticker)
 
@@ -40,7 +42,6 @@ for ticker in tickers:
 
     # Filter dataframe for the first three years
     df_train_years = df[df['Year'].between(start_year, start_year + 2)]
-    print(df_train_years)
 
     # Count the occurrences of "+" and "-" days in the filtered dataframe
     train_up_days = (df_train_years['True Label'] == '+').sum()
@@ -62,63 +63,13 @@ for ticker in tickers:
     df_test_years = df[df['Year'].isin([last_two_years, last_two_years + 1])]
     print(df_test_years)
 
-    # 
-
-    up_probabilities = {}
-    down_probabilities = {}
-
-    values_of_k = [1, 2, 3]
-
-    for k in values_of_k:
-        # Initializing variables to count sequences
-        down_followed_by_up = 0
-        down_followed_by_down = 0
-        up_followed_by_down = 0
-        up_followed_by_up = 0
-
-        # Iterating over each row in the filtered DataFrame with a sliding window of length k+1
-        for i in range(len(df_train_years) - k):
-            # Get the slice of the dataframe corresponding to the sliding window of length k+1
-            window = df_train_years.iloc[i:i+k+1]
-            
-            # Check if the first k elements in the window are consecutive 'down days'
-            if window.iloc[:k]['True Label'].tolist() == ['-'] * k:
-                # Check if the last element in the window is an 'up day'
-                if window.iloc[-1]['True Label'] == '+':
-                    down_followed_by_up += 1
-                else:
-                    down_followed_by_down += 1
-            
-            # Check if the first k elements in the window are consecutive 'up days'
-            if window.iloc[:k]['True Label'].tolist() == ['+'] * k:
-                # Check if the last element in the window is a 'down day'
-                if window.iloc[-1]['True Label'] == '-':
-                    up_followed_by_down += 1
-                else:
-                    up_followed_by_up += 1
-        
-
-        total_down_seq = down_followed_by_up + down_followed_by_down
-        total_up_seq = up_followed_by_down + up_followed_by_up
-
-        # Calculate probability for k down days down followed by up day
-        up_probability = down_followed_by_up / total_down_seq if total_down_seq != 0 else 0
-        up_probabilities[k] = up_probability
-
-        # Calculate probability for k up days followed by down day
-        down_probability = up_followed_by_down / total_up_seq if total_down_seq != 0 else 0
-        down_probabilities[k] = down_probability
-
-    # Print probabilities for different values of k
-    for k, up_probability in up_probabilities.items():
-        print(f"Probability of observing an 'up day' after seeing {k} consecutive 'down days' for {ticker}: {up_probability:.4f}")
-    
-    for k, down_probability in down_probabilities.items():
-        print(f"Probability of observing an 'down day' after seeing {k} consecutive 'up days' for {ticker}: {down_probability:.4f}")
-
     print("-----------------------------------------------------------------------------------------------------------------------------")
 
     values_of_w = [2,3,4]
+
+    prediction_accuracy = {}
+    pos_prediction_accuracy = {}
+    neg_prediction_accuracy = {}
 
     for w in values_of_w:
         # Initializing variables to count sequences
@@ -126,9 +77,17 @@ for ticker in tickers:
         pos_string_count = 0
         next_result = ''
         new_column = f'W{w}'
+        correct_label = 0
+        incorrect_label = 0
+        correct_pos_label = 0
+        incorrect_pos_label = 0
+        correct_neg_label = 0
+        incorrect_neg_label = 0
+
+        print(f"Creating {new_column} column...Please wait a few seconds\n")
 
         if new_column not in df_test_years:
-            df_test_years[new_column] = ''  # Create the column if it doesn't exists
+            df_test_years[new_column] = ''
 
         for i in range(w-1,len(df_test_years) - 1):
             # Get the slice of the dataframe corresponding to the sliding window of length k+1
@@ -146,8 +105,33 @@ for ticker in tickers:
                 else:
                     next_result = '-'
             df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] = next_result
-        
-            print(neg_string_count)
-            print(pos_string_count)
+
+            if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")]:
+                correct_label += 1
+            else:
+                incorrect_label += 1
+
+            if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '+'):
+                correct_pos_label += 1
+            else:
+                incorrect_pos_label += 1
+
+            if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '-'):
+                correct_neg_label += 1
+            else:
+                incorrect_neg_label += 1
         
         print(df_test_years)
+
+        prediction_accuracy[new_column] = correct_label / (correct_label + incorrect_label)
+        pos_prediction_accuracy[new_column] = correct_pos_label / (correct_pos_label + incorrect_pos_label)
+        neg_prediction_accuracy[new_column] = correct_neg_label / (correct_neg_label + incorrect_neg_label)
+
+    
+    print("...Label Prediction Complete")
+    
+    print("Overall Prediction Accuracy: ", prediction_accuracy)
+    print("Positive Prediction Accuracy: ", pos_prediction_accuracy)
+    print("Negative Prediction Accuracy: ", neg_prediction_accuracy)
+
+    print(f"\n*****End ticker: {ticker}*****\n")

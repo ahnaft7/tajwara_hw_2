@@ -9,7 +9,7 @@ Description of Problem (just a 1-2 line summary!): This problem is to create pan
 
 import pandas as pd
 
-tickers = ['SPY.csv']
+tickers = ['SPY.csv', 'TSLA.csv']
 
 for ticker in tickers:
 
