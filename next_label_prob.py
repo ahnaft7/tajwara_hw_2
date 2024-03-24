@@ -55,7 +55,7 @@ for ticker in tickers:
         up_followed_by_up = 0
 
         # Iterating over each row in the filtered DataFrame with a sliding window of length k+1
-        for i in range(len(df_train_years) - k - 1):
+        for i in range(len(df_train_years) - k):
             # Get the slice of the dataframe corresponding to the sliding window of length k+1
             window = df_train_years.iloc[i:i+k+1]
             
@@ -89,7 +89,7 @@ for ticker in tickers:
 
     # Print probabilities for different values of k
     for k, up_probability in up_probabilities.items():
-        print(f"Probability of observing an 'up day' after seeing {k} consecutive 'down days' for {ticker}: {up_probability:.2f}")
+        print(f"Probability of observing an 'up day' after seeing {k} consecutive 'down days' for {ticker}: {up_probability:.4f}")
     
     for k, down_probability in down_probabilities.items():
-        print(f"Probability of observing an 'down day' after seeing {k} consecutive 'up days' for {ticker}: {down_probability:.2f}")
+        print(f"Probability of observing an 'down day' after seeing {k} consecutive 'up days' for {ticker}: {down_probability:.4f}")
