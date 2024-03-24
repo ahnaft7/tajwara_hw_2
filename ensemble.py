@@ -2,9 +2,9 @@
 Ahnaf Tajwar
 Class: CS 677
 Date: 3/23/23
-Homework Problem # 2
-Description of Problem (just a 1-2 line summary!): This problem is to predict if the next trading day will be positive or negative based on the training data and computing the probability based on history. 
-It also asks for prediction accuracy based on how many predictions matched the True Label.
+Homework Problem # 3
+Description of Problem (just a 1-2 line summary!): This problem is to compute the ensemble label by averaging the predicted label.
+    The percentage and accuracy of correct labels predicted using ensemble is also computed.
 """
 
 import pandas as pd
@@ -64,13 +64,17 @@ for ticker in tickers:
     df_test_years = df[df['Year'].isin([last_two_years, last_two_years + 1])]
     print(df_test_years)
 
-    print("-----------------------------------------------------------------------------------------------------------------------------")
+    print("\n--------------------------------------------------Predict Label-----------------------------------------------------------------\n")
 
     values_of_w = [2,3,4]
 
     prediction_accuracy = {}
     pos_prediction_accuracy = {}
     neg_prediction_accuracy = {}
+    pos_labels = (df_test_years['True Label'] == '+').sum()
+    neg_labels = (df_test_years['True Label'] == '-').sum()  
+    print("Number of positive True Labels: ", pos_labels)
+    print("Number of negative True Labels: ", neg_labels)
 
     for w in values_of_w:
         # Initializing variables to count sequences
@@ -114,19 +118,22 @@ for ticker in tickers:
 
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '+'):
                 correct_pos_label += 1
-            else:
-                incorrect_pos_label += 1
+            # else:
+            #     incorrect_pos_label += 1
 
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '-'):
                 correct_neg_label += 1
-            else:
-                incorrect_neg_label += 1
+            # else:
+            #     incorrect_neg_label += 1
         
         print(df_test_years)
 
         prediction_accuracy[new_column] = correct_label / (correct_label + incorrect_label)
-        pos_prediction_accuracy[new_column] = correct_pos_label / (correct_pos_label + incorrect_pos_label)
-        neg_prediction_accuracy[new_column] = correct_neg_label / (correct_neg_label + incorrect_neg_label)
+        # pos_prediction_accuracy[new_column] = correct_pos_label / (correct_pos_label + incorrect_pos_label)
+        # neg_prediction_accuracy[new_column] = correct_neg_label / (correct_neg_label + incorrect_neg_label)
+
+        pos_prediction_accuracy[new_column] = correct_pos_label / (pos_labels)
+        neg_prediction_accuracy[new_column] = correct_neg_label / (neg_labels)
 
     
     print("...Label Prediction Complete")
@@ -134,5 +141,65 @@ for ticker in tickers:
     print("Overall Prediction Accuracy: ", prediction_accuracy)
     print("Positive Prediction Accuracy: ", pos_prediction_accuracy)
     print("Negative Prediction Accuracy: ", neg_prediction_accuracy)
+
+    print("\n--------------------------------------------------Ensemble-------------------------------------------------------------------\n")
+
+    ensemble_column = 'Ensemble'
+
+    print(f"Creating {ensemble_column} column...Please wait a few seconds\n")
+
+    if ensemble_column not in df_test_years:
+        df_test_years[ensemble_column] = ''
+    
+    # Calculate majority value for each row
+    majority_value = df_test_years[['W2', 'W3', 'W4']].mode(axis=1)[0]
+
+    # Add 'Ensemble' column to DataFrame with the majority value for each row
+    df_test_years['Ensemble'] = majority_value
+
+    print(df_test_years)
+
+    correct_ensemble = 0
+    incorrect_ensemble = 0
+    correct_pos_ensemble = 0
+    incorrect_pos_ensemble = 0
+    correct_neg_ensemble = 0
+    incorrect_neg_ensemble = 0
+
+    for index, row in df_test_years.iterrows():
+        if row['Ensemble'] == row['True Label']:
+            correct_ensemble += 1
+        else:
+            incorrect_ensemble += 1
+        
+        if row['Ensemble'] == row['True Label'] and row['Ensemble'] == '+':
+            correct_pos_ensemble += 1
+        # else:
+        #     incorrect_pos_ensemble += 1
+        
+        if row['Ensemble'] == row['True Label'] and row['Ensemble'] == '-':
+            correct_neg_ensemble += 1
+        # else:
+        #     incorrect_neg_ensemble += 1
+
+    print("Number of correctly predicted ensembles: ", correct_ensemble)
+    print("Number of incorrectly predicted ensembles: ", incorrect_ensemble)
+
+    correct_ensemble_percent = correct_ensemble / (correct_ensemble + incorrect_ensemble)
+    print("Percentage of correctly predicted ensembles: ", correct_ensemble_percent)
+
+    print("Number of correctly predicted positive ensembles: ", correct_pos_ensemble) 
+    # print("Number of incorrectly predicted positive ensembles: ", incorrect_pos_ensemble)
+
+    # correct_pos_ensemble_percent = correct_pos_ensemble / (correct_pos_ensemble + incorrect_pos_ensemble)
+    correct_pos_ensemble_percent = correct_pos_ensemble / (pos_labels)
+    print("Percentage of correctly predicted positive ensembles: ", correct_pos_ensemble_percent)
+
+    print("Number of correctly predicted negative ensembles: ", correct_neg_ensemble) 
+    # print("Number of incorrectly predicted negative ensembles: ", incorrect_neg_ensemble) 
+
+    # correct_neg_ensemble_percent = correct_neg_ensemble / (correct_neg_ensemble + incorrect_neg_ensemble)
+    correct_neg_ensemble_percent = correct_neg_ensemble / (neg_labels)
+    print("Percentage of correctly predicted negative ensembles: ", correct_neg_ensemble_percent) 
 
     print(f"\n*****End ticker: {ticker}*****\n")
