@@ -40,7 +40,7 @@ for ticker in tickers:
 
     print(f"Probability of getting a '+' day for the first three years for {ticker}:", train_up_prob)
 
-    # 
+    # Probability of up or down day after k up or down days
 
     up_probabilities = {}
     down_probabilities = {}

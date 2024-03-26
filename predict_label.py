@@ -11,6 +11,11 @@ import pandas as pd
 
 tickers = ['SPY.csv', 'TSLA.csv']
 
+'''
+This function checks for the desired sequence in the training data for a certain window
+Checks the next label
+Adds to count for each sequence
+'''
 def check_sequence(train_data, w, seq):
         neg_string_count = 0
         pos_string_count = 0
@@ -64,13 +69,17 @@ for ticker in tickers:
     df_test_years = df[df['Year'].isin([last_two_years, last_two_years + 1])]
     print(df_test_years)
 
-    print("-----------------------------------------------------------------------------------------------------------------------------")
+    print("\n--------------------------------------------------Predict Label-----------------------------------------------------------------\n")
 
     values_of_w = [2,3,4]
 
     prediction_accuracy = {}
     pos_prediction_accuracy = {}
     neg_prediction_accuracy = {}
+    pos_labels = (df_test_years['True Label'] == '+').sum()
+    neg_labels = (df_test_years['True Label'] == '-').sum()  
+    print("Number of positive True Labels: ", pos_labels)
+    print("Number of negative True Labels: ", neg_labels)
 
     for w in values_of_w:
         # Initializing variables to count sequences
@@ -87,6 +96,7 @@ for ticker in tickers:
 
         print(f"Creating {new_column} column...Please wait a few seconds\n")
 
+        # Create W column
         if new_column not in df_test_years:
             df_test_years[new_column] = ''
 
@@ -94,8 +104,11 @@ for ticker in tickers:
             # Get the slice of the dataframe corresponding to the sliding window of length k+1
             window = df_test_years.iloc[i-w+1:i+1]
             seq = window['True Label'].tolist()
+
+            # Check for the count of desired sequence
             neg_string_count, pos_string_count = check_sequence(df_train_years, w, seq)
 
+            # Assigns the next label as + or - depending on which is more probable
             if neg_string_count > pos_string_count:
                 next_result = '-'
             elif neg_string_count < pos_string_count:
@@ -107,6 +120,7 @@ for ticker in tickers:
                     next_result = '-'
             df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] = next_result
 
+            # Counts the numbers of correct and incorrect predictions
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")]:
                 correct_label += 1
             else:
@@ -114,19 +128,23 @@ for ticker in tickers:
 
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '+'):
                 correct_pos_label += 1
-            else:
-                incorrect_pos_label += 1
+            # else:
+            #     incorrect_pos_label += 1
 
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '-'):
                 correct_neg_label += 1
-            else:
-                incorrect_neg_label += 1
+            # else:
+            #     incorrect_neg_label += 1
         
         print(df_test_years)
 
+        # Adds the accuracy to a dictionary
         prediction_accuracy[new_column] = correct_label / (correct_label + incorrect_label)
-        pos_prediction_accuracy[new_column] = correct_pos_label / (correct_pos_label + incorrect_pos_label)
-        neg_prediction_accuracy[new_column] = correct_neg_label / (correct_neg_label + incorrect_neg_label)
+        # pos_prediction_accuracy[new_column] = correct_pos_label / (correct_pos_label + incorrect_pos_label)
+        # neg_prediction_accuracy[new_column] = correct_neg_label / (correct_neg_label + incorrect_neg_label)
+
+        pos_prediction_accuracy[new_column] = correct_pos_label / (pos_labels)
+        neg_prediction_accuracy[new_column] = correct_neg_label / (neg_labels)
 
     
     print("...Label Prediction Complete")

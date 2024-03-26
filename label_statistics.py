@@ -7,10 +7,15 @@ Description of Problem (just a 1-2 line summary!): This problem is to compute th
 """
 
 import pandas as pd
-from tabulate import tabulate
+import pickle
 
 tickers = ['SPY.csv', 'TSLA.csv']
 
+'''
+This function checks for the desired sequence in the training data for a certain window
+Checks the next label
+Adds to count for each sequence
+'''
 def check_sequence(train_data, w, seq):
         neg_string_count = 0
         pos_string_count = 0
@@ -93,6 +98,7 @@ for ticker in tickers:
 
         print(f"Creating {new_column} column...Please wait a few seconds\n")
 
+        # Create W column
         if new_column not in df_test_years:
             df_test_years[new_column] = ''
 
@@ -100,6 +106,8 @@ for ticker in tickers:
             # Get the slice of the dataframe corresponding to the sliding window of length k+1
             window = df_test_years.iloc[i-w+1:i+1]
             seq = window['True Label'].tolist()
+
+            # Check for the count of desired sequence
             neg_string_count, pos_string_count = check_sequence(df_train_years, w, seq)
 
             if neg_string_count > pos_string_count:
@@ -113,16 +121,19 @@ for ticker in tickers:
                     next_result = '-'
             df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] = next_result
 
+            # Counts the numbers of correct and incorrect predictions
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")]:
                 correct_label += 1
             else:
                 incorrect_label += 1
 
+            # Counts the TP and FP
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '+'):
                 correct_pos_label += 1
             elif df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] != df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '-'):
                 incorrect_pos_label += 1
 
+            # Counts the TN and FN
             if df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] == df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '-'):
                 correct_neg_label += 1
             elif df_test_years.iloc[i+1, df_test_years.columns.get_loc(new_column)] != df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] and (df_test_years.iloc[i+1, df_test_years.columns.get_loc("True Label")] == '+'):
@@ -130,6 +141,7 @@ for ticker in tickers:
         
         print(df_test_years)
 
+        # Adds the accuracy to a dictionary
         prediction_accuracy[new_column] = correct_label / (correct_label + incorrect_label)
         # pos_prediction_accuracy[new_column] = correct_pos_label / (correct_pos_label + incorrect_pos_label)
         # neg_prediction_accuracy[new_column] = correct_neg_label / (correct_neg_label + incorrect_neg_label)
@@ -137,6 +149,7 @@ for ticker in tickers:
         pos_prediction_accuracy[new_column] = correct_pos_label / (pos_labels)
         neg_prediction_accuracy[new_column] = correct_neg_label / (neg_labels)
 
+        # Adds the statistics to a nested dictionary
         tf_statistics[new_column]['ticker'] = ticker
         tf_statistics[new_column]['TP'] = correct_pos_label
         tf_statistics[new_column]['FP'] = incorrect_pos_label
@@ -148,6 +161,7 @@ for ticker in tickers:
         print(f"True Negative W{w}: ", correct_neg_label)
         print(f"False Negative W{w}: ", incorrect_neg_label)
 
+        # Calculates and adds TPR and TNR to statistics dictionary
         true_pos_rate = correct_pos_label / (correct_pos_label + incorrect_neg_label)
         true_neg_rate = correct_neg_label / (correct_neg_label + incorrect_pos_label)
 
@@ -189,17 +203,20 @@ for ticker in tickers:
     correct_neg_ensemble = 0
     incorrect_neg_ensemble = 0
 
+    # Counts the numbers of correct and incorrect predictions
     for index, row in df_test_years.iterrows():
         if row['Ensemble'] == row['True Label']:
             correct_ensemble += 1
         else:
             incorrect_ensemble += 1
         
+        # Counts the TP and FP
         if row['Ensemble'] == row['True Label'] and row['Ensemble'] == '+':
             correct_pos_ensemble += 1
         elif row['Ensemble'] != row['True Label'] and row['Ensemble'] == '+':
             incorrect_pos_ensemble += 1
         
+        # Counts the TN and FN
         if row['Ensemble'] == row['True Label'] and row['Ensemble'] == '-':
             correct_neg_ensemble += 1
         elif row['Ensemble'] != row['True Label'] and row['Ensemble'] == '-':
@@ -227,6 +244,7 @@ for ticker in tickers:
 
     tf_statistics['Ensemble'] = {}
 
+    # Adds the statistics to a nested dictionary
     tf_statistics['Ensemble']['ticker'] = ticker
     tf_statistics['Ensemble']['TP'] = correct_pos_ensemble
     tf_statistics['Ensemble']['FP'] = incorrect_pos_ensemble
@@ -238,6 +256,7 @@ for ticker in tickers:
     print("True Negative Ensemble: ", correct_neg_ensemble)
     print("False Negative Ensemble: ", incorrect_neg_ensemble)
 
+    # Calculates and adds TPR and TNR to statistics dictionary
     true_pos_rate_ensemble = correct_pos_ensemble / (correct_pos_ensemble + incorrect_neg_ensemble)
     true_neg_rate_ensemble = correct_neg_ensemble / (correct_neg_ensemble + incorrect_pos_ensemble)
 
@@ -248,6 +267,7 @@ for ticker in tickers:
     print("True Positive Rate Ensemble: ", true_pos_rate_ensemble)
     print("True Negative Rate Ensemble: ", true_neg_rate_ensemble)
 
+    # Create table with statistics
     if ticker == 'SPY.csv':
         data_spy_df = pd.DataFrame(tf_statistics).T.reset_index()  # Transpose the DataFrame to have 'W2', 'W3', 'W4', 'Ensemble' as row indices
         data_spy_df = data_spy_df.rename(columns={'index': 'W'})
@@ -259,6 +279,13 @@ for ticker in tickers:
 
     print(f"\n*****End ticker: {ticker}*****\n")
 
+    # Pickle the dataframe to be used in other notebooks
+    with open(f'{ticker}_df.pkl', 'wb') as f:
+        pickle.dump(df_test_years, f)
+
+print("\n*****Statistics for both tickers*****\n")
+
+# Combine the statistics table for both tickers
 combined_df = pd.concat([data_spy_df, data_tsla_df], ignore_index=True)
 
 print(combined_df)
